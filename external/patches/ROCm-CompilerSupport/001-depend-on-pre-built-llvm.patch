@@ -1,0 +1,81 @@
+diff --git a/lib/comgr/cmake/opencl_pch.cmake b/lib/comgr/cmake/opencl_pch.cmake
+index 95311fc..2646916 100644
+--- a/lib/comgr/cmake/opencl_pch.cmake
++++ b/lib/comgr/cmake/opencl_pch.cmake
+@@ -36,8 +36,15 @@ function(generate_pch version)
+     set(clang_resource_headers_gen clang-resource-headers)
+   endif()
+ 
++  if(TARGET clang)
++    set(CLANG_EXE $<TARGET_FILE:clang>)
++  else()
++    find_program(CLANG_EXE clang
++      HINTS "${LLVM_TOOLS_BINARY_DIR}")
++  endif()
++
+   add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/opencl${version}-c.pch
+-    COMMAND $<TARGET_FILE:clang> -cc1 -x cl-header -triple amdgcn-amd-amdhsa
++    COMMAND "${CLANG_EXE}" -cc1 -x cl-header -triple amdgcn-amd-amdhsa
+       -Werror -O3 -Dcl_khr_fp64 -Dcl_khr_fp16 -DNDEBUG -cl-std=CL${version}
+       -emit-pch -o ${CMAKE_CURRENT_BINARY_DIR}/opencl${version}-c.pch
+       < ${OPENCL_C_H}
+diff --git a/lib/comgr/test/CMakeLists.txt b/lib/comgr/test/CMakeLists.txt
+index 4d786e0..7c984c9 100644
+--- a/lib/comgr/test/CMakeLists.txt
++++ b/lib/comgr/test/CMakeLists.txt
+@@ -1,3 +1,10 @@
++if(TARGET clang)
++  set(CLANG_EXE $<TARGET_FILE:clang>)
++else()
++  find_program(CLANG_EXE clang
++    HINTS "${LLVM_TOOLS_BINARY_DIR}")
++endif()
++
+ set(TEST_INPUT_BINARIES)
+ set(TEST_INPUT_BITCODES)
+ # Create target ${name} which depends on a clang command to compile ${input} to
+@@ -6,7 +13,7 @@ set(TEST_INPUT_BITCODES)
+ macro(add_test_input_binary name input output)
+   add_custom_command(
+     OUTPUT "${output}"
+-    COMMAND "$<TARGET_FILE:clang>" --target=amdgcn-amd-amdhsa -mcpu=gfx803 -nogpulib
++    COMMAND "${CLANG_EXE}" --target=amdgcn-amd-amdhsa -mcpu=gfx803 -nogpulib
+     ${ARGN} "${CMAKE_CURRENT_SOURCE_DIR}/${input}" -o "${output}"
+     VERBATIM
+     DEPENDS clang lld "${input}")
+@@ -23,7 +30,7 @@ endmacro()
+ macro(add_test_shared_binary name target1 input1 target2 input2 output)
+   add_custom_command(
+     OUTPUT "${output}"
+-    COMMAND "$<TARGET_FILE:clang>" --target=amdgcn-amd-amdhsa
++    COMMAND "${CLANG_EXE}" --target=amdgcn-amd-amdhsa
+       "${input1}" "${input2}" -o "${output}"
+     VERBATIM
+     DEPENDS clang lld ${target1} ${target2})
+diff --git a/lib/comgr/include/amd_comgr.h.in b/lib/comgr/include/amd_comgr.h.in
+index 703d924..7d1a9d2 100644
+--- a/lib/comgr/include/amd_comgr.h.in
++++ b/lib/comgr/include/amd_comgr.h.in
+@@ -48,6 +48,13 @@
+ #define AMD_COMGR_CALL
+ #endif
+ 
++#ifdef AMD_COMGR_STATIC
++
++#define AMD_COMGR_EXPORT_DECORATOR
++#define AMD_COMGR_IMPORT_DECORATOR
++
++#else // AMD_COMGR_STATIC
++
+ #ifndef AMD_COMGR_EXPORT_DECORATOR
+ #ifdef __GNUC__
+ #define AMD_COMGR_EXPORT_DECORATOR __attribute__ ((visibility ("default")))
+@@ -64,6 +71,8 @@
+ #endif
+ #endif
+ 
++#endif // AMD_COMGR_STATIC
++
+ #define AMD_COMGR_API_EXPORT AMD_COMGR_EXPORT_DECORATOR AMD_COMGR_CALL
+ #define AMD_COMGR_API_IMPORT AMD_COMGR_IMPORT_DECORATOR AMD_COMGR_CALL
+ 

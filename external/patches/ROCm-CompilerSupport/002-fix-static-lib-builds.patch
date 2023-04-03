@@ -1,0 +1,30 @@
+diff --git a/lib/comgr/CMakeLists.txt b/lib/comgr/CMakeLists.txt
+index e301912..f5263cb 100644
+--- a/lib/comgr/CMakeLists.txt
++++ b/lib/comgr/CMakeLists.txt
+@@ -134,6 +134,7 @@ endif()
+ 
+ set(AMD_COMGR_PRIVATE_COMPILE_OPTIONS)
+ set(AMD_COMGR_PRIVATE_COMPILE_DEFINITIONS ${LLVM_DEFINITIONS})
++set(AMD_COMGR_PUBLIC_COMPILE_DEFINITIONS)
+ set(AMD_COMGR_PUBLIC_LINKER_OPTIONS)
+ set(AMD_COMGR_PRIVATE_LINKER_OPTIONS)
+ 
+@@ -193,6 +194,7 @@ endif()
+ 
+ if (NOT COMGR_BUILD_SHARED_LIBS)
+   set_target_properties(amd_comgr PROPERTIES POSITION_INDEPENDENT_CODE ON)
++  list(APPEND AMD_COMGR_PUBLIC_COMPILE_DEFINITIONS AMD_COMGR_STATIC)
+ endif()
+ 
+ if (CMAKE_SIZEOF_VOID_P EQUAL 4)
+@@ -202,7 +204,8 @@ endif()
+ target_compile_options(amd_comgr
+   PRIVATE "${AMD_COMGR_PRIVATE_COMPILE_OPTIONS}")
+ target_compile_definitions(amd_comgr
+-  PRIVATE "${AMD_COMGR_PRIVATE_COMPILE_DEFINITIONS}")
++  PRIVATE "${AMD_COMGR_PRIVATE_COMPILE_DEFINITIONS}"
++  PUBLIC "${AMD_COMGR_PUBLIC_COMPILE_DEFINITIONS}")
+ target_include_directories(amd_comgr
+   PUBLIC
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>

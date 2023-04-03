@@ -1,0 +1,15 @@
+diff --git a/lib/comgr/test/CMakeLists.txt b/lib/comgr/test/CMakeLists.txt
+index 7c984c9..86c9832 100644
+--- a/lib/comgr/test/CMakeLists.txt
++++ b/lib/comgr/test/CMakeLists.txt
+@@ -140,6 +140,10 @@ if (DEFINED HIP_COMPILER AND "${HIP_COMPILER}" STREQUAL "clang")
+   target_compile_definitions("${name}"
+     PRIVATE -DHIP_COMPILER=${HIP_COMPILER})
+ endif()
++  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
++    target_compile_definitions("${name}"
++      PRIVATE -D_CRT_SECURE_NO_WARNINGS)
++  endif()
+   target_link_libraries("${name}"
+     amd_comgr)
+   add_dependencies("${name}"

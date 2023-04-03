@@ -1,0 +1,13 @@
+diff --git a/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp b/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp
+index 2f44c999e5a2..978740264bbd 100644
+--- a/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp
++++ b/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp
+@@ -1733,7 +1733,7 @@ static bool generateConvertInst(const StringRef DemangledCall,
+                     SPIRV::Decoration::SaturatedConversion, {});
+   if (Builtin->IsRounded)
+     buildOpDecorate(Call->ReturnRegister, MIRBuilder,
+-                    SPIRV::Decoration::FPRoundingMode, {Builtin->RoundingMode});
++                    SPIRV::Decoration::FPRoundingMode, {static_cast<uint32_t>(Builtin->RoundingMode)});
+ 
+   unsigned Opcode = SPIRV::OpNop;
+   if (GR->isScalarOrVectorOfType(Call->Arguments[0], SPIRV::OpTypeInt)) {
