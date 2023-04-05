@@ -1,0 +1,210 @@
+diff --git a/llvm/lib/Linker/IRMover.cpp b/llvm/lib/Linker/IRMover.cpp
+index 517e2dc8eb..5d93e61cfd 100644
+--- a/llvm/lib/Linker/IRMover.cpp
++++ b/llvm/lib/Linker/IRMover.cpp
+@@ -31,6 +31,7 @@
+ #include "llvm/Transforms/Utils/ValueMapper.h"
+ #include <optional>
+ #include <utility>
++#include <iostream>
+ using namespace llvm;
+ 
+ //===----------------------------------------------------------------------===//
+@@ -599,6 +600,7 @@ Value *IRLinker::materialize(Value *V, bool ForIndirectSymbol) {
+ 
+   Expected<Constant *> NewProto = linkGlobalValueProto(SGV, ForIndirectSymbol);
+   if (!NewProto) {
++    std::cerr << "Materialize error 1." << std::endl;
+     setError(NewProto.takeError());
+     return nullptr;
+   }
+@@ -638,8 +640,11 @@ Value *IRLinker::materialize(Value *V, bool ForIndirectSymbol) {
+       (!ForIndirectSymbol && IndirectSymbolValueMap.lookup(SGV) == New))
+     return New;
+ 
+-  if (ForIndirectSymbol || shouldLink(New, *SGV))
++  if (ForIndirectSymbol || shouldLink(New, *SGV)) {
+     setError(linkGlobalValueBody(*New, *SGV));
++    if (FoundError)
++      std::cerr << "Materialize error 2." << std::endl;
++  }
+ 
+   updateAttributes(*New);
+   return New;
+@@ -1354,11 +1359,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
+     if (DstBehaviorValue == Module::Override) {
+       // Diagnose inconsistent flags which both have override behavior.
+       if (SrcBehaviorValue == Module::Override &&
+-          SrcOp->getOperand(2) != DstOp->getOperand(2))
++          SrcOp->getOperand(2) != DstOp->getOperand(2)) {
++        std::cerr << "IRLink error 3." << std::endl;
+         return stringErr("linking module flags '" + ID->getString() +
+                          "': IDs have conflicting override values in '" +
+                          SrcM->getModuleIdentifier() + "' and '" +
+                          DstM.getModuleIdentifier() + "'");
++      }
+       continue;
+     } else if (SrcBehaviorValue == Module::Override) {
+       // Update the destination flag to that of the source.
+@@ -1376,11 +1383,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
+                          DstBehaviorValue == Module::Warning) ||
+                         (DstBehaviorValue == Module::Max &&
+                          SrcBehaviorValue == Module::Warning);
+-      if (!(MaxAndWarn || MinAndWarn))
++      if (!(MaxAndWarn || MinAndWarn)) {
++        std::cerr << "IRLink error 4." << std::endl;
+         return stringErr("linking module flags '" + ID->getString() +
+                          "': IDs have conflicting behaviors in '" +
+                          SrcM->getModuleIdentifier() + "' and '" +
+                          DstM.getModuleIdentifier() + "'");
++      }
+     }
+ 
+     auto ensureDistinctOp = [&](MDNode *DstValue) {
+@@ -1459,11 +1468,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
+       llvm_unreachable("not possible");
+     case Module::Error: {
+       // Emit an error if the values differ.
+-      if (SrcOp->getOperand(2) != DstOp->getOperand(2))
++      if (SrcOp->getOperand(2) != DstOp->getOperand(2)) {
++        std::cerr << "IRLink error 5." << std::endl;
+         return stringErr("linking module flags '" + ID->getString() +
+                          "': IDs have conflicting values in '" +
+                          SrcM->getModuleIdentifier() + "' and '" +
+                          DstM.getModuleIdentifier() + "'");
++      }
+       continue;
+     }
+     case Module::Warning: {
+@@ -1514,9 +1525,11 @@ Error IRLinker::linkModuleFlagsMetadata() {
+     Metadata *ReqValue = Requirement->getOperand(1);
+ 
+     MDNode *Op = Flags[Flag].first;
+-    if (!Op || Op->getOperand(2) != ReqValue)
++    if (!Op || Op->getOperand(2) != ReqValue) {
++      std::cerr << "IRLink error 6." << std::endl;
+       return stringErr("linking module flags '" + Flag->getString() +
+                        "': does not have the required value");
++    }
+   }
+   return Error::success();
+ }
+@@ -1563,8 +1576,10 @@ void IRLinker::updateAttributes(GlobalValue &GV) {
+ Error IRLinker::run() {
+   // Ensure metadata materialized before value mapping.
+   if (SrcM->getMaterializer())
+-    if (Error Err = SrcM->getMaterializer()->materializeMetadata())
++    if (Error Err = SrcM->getMaterializer()->materializeMetadata()) {
++      std::cerr << "IRLink error 1." << std::endl;
+       return Err;
++    }
+ 
+   // Inherit the target data from the source module if the destination module
+   // doesn't have one already.
+@@ -1636,8 +1651,10 @@ Error IRLinker::run() {
+ 
+     assert(!GV->isDeclaration());
+     Mapper.mapValue(*GV);
+-    if (FoundError)
++    if (FoundError) {
++      std::cerr << "IRLink error 2." << std::endl;
+       return std::move(*FoundError);
++    }
+     flushRAUWWorklist();
+   }
+ 
+diff --git a/llvm/lib/Linker/LinkModules.cpp b/llvm/lib/Linker/LinkModules.cpp
+index 2f5fac4951..b1daabe3ee 100644
+--- a/llvm/lib/Linker/LinkModules.cpp
++++ b/llvm/lib/Linker/LinkModules.cpp
+@@ -21,6 +21,8 @@
+ #include "llvm/Support/Error.h"
+ using namespace llvm;
+ 
++#include <iostream>
++
+ namespace {
+ 
+ enum class LinkFrom { Dst, Src, Both };
+@@ -469,8 +471,10 @@ bool ModuleLinker::run() {
+       continue;
+     Comdat::SelectionKind SK;
+     LinkFrom From;
+-    if (getComdatResult(&C, SK, From))
++    if (getComdatResult(&C, SK, From)) {
++      std::cerr << "Link error 1." << std::endl;
+       return true;
++    }
+     ComdatsChosen[&C] = std::make_pair(SK, From);
+ 
+     if (From != LinkFrom::Src)
+@@ -516,20 +520,28 @@ bool ModuleLinker::run() {
+   // initializers (which could refer to functions not yet mapped over).
+   SmallVector<GlobalValue *, 0> GVToClone;
+   for (GlobalVariable &GV : SrcM->globals())
+-    if (linkIfNeeded(GV, GVToClone))
++    if (linkIfNeeded(GV, GVToClone)) {
++      std::cerr << "Link error 2." << std::endl;
+       return true;
++    }
+ 
+   for (Function &SF : *SrcM)
+-    if (linkIfNeeded(SF, GVToClone))
++    if (linkIfNeeded(SF, GVToClone)) {
++      std::cerr << "Link error 3." << std::endl;
+       return true;
++    }
+ 
+   for (GlobalAlias &GA : SrcM->aliases())
+-    if (linkIfNeeded(GA, GVToClone))
++    if (linkIfNeeded(GA, GVToClone)) {
++      std::cerr << "Link error 4." << std::endl;
+       return true;
++    }
+ 
+   for (GlobalIFunc &GI : SrcM->ifuncs())
+-    if (linkIfNeeded(GI, GVToClone))
++    if (linkIfNeeded(GI, GVToClone)) {
++      std::cerr << "Link error 5." << std::endl;
+       return true;
++    }
+ 
+   // For a variable in a comdat nodeduplicate, its initializer should be
+   // preserved (its content may be implicitly used by other members) even if
+@@ -561,8 +573,10 @@ bool ModuleLinker::run() {
+     for (GlobalValue *GV2 : LazyComdatMembers[SC]) {
+       GlobalValue *DGV = getLinkedToGlobal(GV2);
+       bool LinkFromSrc = true;
+-      if (DGV && shouldLinkFromSource(LinkFromSrc, *DGV, *GV2))
++      if (DGV && shouldLinkFromSource(LinkFromSrc, *DGV, *GV2)) {
++        std::cerr << "Link error 6." << std::endl;
+         return true;
++      }
+       if (LinkFromSrc)
+         ValuesToLink.insert(GV2);
+     }
+@@ -588,8 +602,10 @@ bool ModuleLinker::run() {
+       HasErrors = true;
+     });
+   }
+-  if (HasErrors)
++  if (HasErrors){
++    std::cerr << "Link error 7." << std::endl;
+     return true;
++  }
+ 
+   if (InternalizeCallback)
+     InternalizeCallback(DstM, Internalize);
+diff --git a/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp b/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp
+index 2f44c999e5..978740264b 100644
+--- a/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp
++++ b/llvm/lib/Target/SPIRV/SPIRVBuiltins.cpp
+@@ -1733,7 +1733,7 @@ static bool generateConvertInst(const StringRef DemangledCall,
+                     SPIRV::Decoration::SaturatedConversion, {});
+   if (Builtin->IsRounded)
+     buildOpDecorate(Call->ReturnRegister, MIRBuilder,
+-                    SPIRV::Decoration::FPRoundingMode, {Builtin->RoundingMode});
++                    SPIRV::Decoration::FPRoundingMode, {static_cast<uint32_t>(Builtin->RoundingMode)});
+ 
+   unsigned Opcode = SPIRV::OpNop;
+   if (GR->isScalarOrVectorOfType(Call->Arguments[0], SPIRV::OpTypeInt)) {
