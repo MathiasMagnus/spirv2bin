@@ -1,5 +1,25 @@
+diff --git a/llvm/lib/Bitcode/Reader/BitcodeReader.cpp b/llvm/lib/Bitcode/Reader/BitcodeReader.cpp
+index f014521264..30f18193fc 100644
+--- a/llvm/lib/Bitcode/Reader/BitcodeReader.cpp
++++ b/llvm/lib/Bitcode/Reader/BitcodeReader.cpp
+@@ -86,6 +86,7 @@
+ #include <tuple>
+ #include <utility>
+ #include <vector>
++#include <iostream>
+ 
+ using namespace llvm;
+ 
+@@ -6565,6 +6566,7 @@ SyncScope::ID BitcodeReader::getDecodedSyncScopeID(unsigned Val) {
+ //===----------------------------------------------------------------------===//
+ 
+ Error BitcodeReader::materialize(GlobalValue *GV) {
++  std::cerr << "I was here." << std::endl;
+   Function *F = dyn_cast<Function>(GV);
+   // If it's not a function or is already material, ignore the request.
+   if (!F || !F->isMaterializable())
 diff --git a/llvm/lib/Linker/IRMover.cpp b/llvm/lib/Linker/IRMover.cpp
-index 517e2dc8eb..5d93e61cfd 100644
+index 517e2dc8eb..a5df25c931 100644
 --- a/llvm/lib/Linker/IRMover.cpp
 +++ b/llvm/lib/Linker/IRMover.cpp
 @@ -31,6 +31,7 @@
@@ -31,7 +51,19 @@ index 517e2dc8eb..5d93e61cfd 100644
  
    updateAttributes(*New);
    return New;
-@@ -1354,11 +1359,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
+@@ -1114,8 +1119,10 @@ Error IRLinker::linkFunctionBody(Function &Dst, Function &Src) {
+   assert(Dst.isDeclaration() && !Src.isDeclaration());
+ 
+   // Materialize if needed.
+-  if (Error Err = Src.materialize())
++  if (Error Err = Src.materialize()) {
++    std::cerr << "FunctionLink error 1." << std::endl;
+     return Err;
++  }
+ 
+   // Link in the operands without remapping.
+   if (Src.hasPrefixData())
+@@ -1354,11 +1361,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
      if (DstBehaviorValue == Module::Override) {
        // Diagnose inconsistent flags which both have override behavior.
        if (SrcBehaviorValue == Module::Override &&
@@ -46,7 +78,7 @@ index 517e2dc8eb..5d93e61cfd 100644
        continue;
      } else if (SrcBehaviorValue == Module::Override) {
        // Update the destination flag to that of the source.
-@@ -1376,11 +1383,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
+@@ -1376,11 +1385,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
                           DstBehaviorValue == Module::Warning) ||
                          (DstBehaviorValue == Module::Max &&
                           SrcBehaviorValue == Module::Warning);
@@ -61,7 +93,7 @@ index 517e2dc8eb..5d93e61cfd 100644
      }
  
      auto ensureDistinctOp = [&](MDNode *DstValue) {
-@@ -1459,11 +1468,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
+@@ -1459,11 +1470,13 @@ Error IRLinker::linkModuleFlagsMetadata() {
        llvm_unreachable("not possible");
      case Module::Error: {
        // Emit an error if the values differ.
@@ -76,7 +108,7 @@ index 517e2dc8eb..5d93e61cfd 100644
        continue;
      }
      case Module::Warning: {
-@@ -1514,9 +1525,11 @@ Error IRLinker::linkModuleFlagsMetadata() {
+@@ -1514,9 +1527,11 @@ Error IRLinker::linkModuleFlagsMetadata() {
      Metadata *ReqValue = Requirement->getOperand(1);
  
      MDNode *Op = Flags[Flag].first;
@@ -89,7 +121,7 @@ index 517e2dc8eb..5d93e61cfd 100644
    }
    return Error::success();
  }
-@@ -1563,8 +1576,10 @@ void IRLinker::updateAttributes(GlobalValue &GV) {
+@@ -1563,8 +1578,10 @@ void IRLinker::updateAttributes(GlobalValue &GV) {
  Error IRLinker::run() {
    // Ensure metadata materialized before value mapping.
    if (SrcM->getMaterializer())
@@ -101,7 +133,7 @@ index 517e2dc8eb..5d93e61cfd 100644
  
    // Inherit the target data from the source module if the destination module
    // doesn't have one already.
-@@ -1636,8 +1651,10 @@ Error IRLinker::run() {
+@@ -1636,8 +1653,10 @@ Error IRLinker::run() {
  
      assert(!GV->isDeclaration());
      Mapper.mapValue(*GV);
