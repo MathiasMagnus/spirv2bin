@@ -3,4 +3,4 @@ cmake_policy(VERSION 3.8...3.25)
 
 project(spirv2bin)
 
-add_subdirectory(exmples/comgr-test)
+add_subdirectory(examples/comgr-test)
