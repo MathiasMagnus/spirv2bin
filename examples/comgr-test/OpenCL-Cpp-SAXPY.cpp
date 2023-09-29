@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <filesystem> // std::filesystem::canonical
 #include <optional>
+#include <sstream>
+#include <string_view>
 
 #include <CL/Utils/Context.hpp> // cl::util::get_context
 #include <CL/Utils/Event.hpp>   // cl::util::get_duration
@@ -247,6 +249,7 @@ int main(int argc, char *argv[])
             status = amd_comgr_get_data_isa_name(exec_data, &isa_name_size, nullptr);
             if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data_isa_name"};
 
+            --isa_name_size; // We don't care about the null terminator
             std::string isa_name(isa_name_size, 'X');
             status = amd_comgr_get_data_isa_name(exec_data, &isa_name_size, isa_name.data());
             if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data_isa_name"};
@@ -292,27 +295,58 @@ int main(int argc, char *argv[])
         if(llvm_module->materializeAll())
             throw std::runtime_error{"Failed to materialize SPIRV module"};
 
-        auto parse_triple_and_gfx = [](const std::string& isa_name)
+        auto parse_isa = [](const std::string_view isa_name)
         {
+            auto isa_substr = [&](const size_t start, const size_t end)
+            {
+               if(end == std::string::npos)
+                   return isa_name.substr(start);
+               else
+                   return isa_name.substr(start, end - start);
+            };
+
             auto arch_vendor_separator_pos = isa_name.find('-', 0);
             auto vendor_os_separator_pos = isa_name.find('-', arch_vendor_separator_pos + 1);
             auto os_environment_separator_pos = isa_name.find('-', vendor_os_separator_pos + 1);
             auto environment_target_separator_pos = isa_name.find('-', os_environment_separator_pos + 1);
 
+            std::stringstream features;
+
+            const auto target_feature_separator_pos = isa_name.find(':', environment_target_separator_pos + 1);
+            auto feature_start_pos = target_feature_separator_pos;
+            while (feature_start_pos != std::string::npos) {
+                auto next_feature_separator_pos = isa_name.find(':', feature_start_pos + 1);
+                auto feature = isa_substr(feature_start_pos + 1, next_feature_separator_pos);
+                const bool first = feature_start_pos != target_feature_separator_pos;
+                feature_start_pos = next_feature_separator_pos;
+
+                if(feature.size() == 0)
+                    continue;
+
+                if(first)
+                    features << ',';
+
+                if(feature.back() == '+')
+                    features << '+' << feature.substr(0, feature.size() - 1);
+                else if (feature.back() == '-')
+                    features << '-' << feature.substr(0, feature.size() - 1);
+            }
+
             return std::make_tuple(
                 llvm::Triple{
-                    isa_name.substr(0, arch_vendor_separator_pos),
-                    isa_name.substr(arch_vendor_separator_pos + 1, vendor_os_separator_pos - arch_vendor_separator_pos),
-                    isa_name.substr(vendor_os_separator_pos + 1, os_environment_separator_pos - vendor_os_separator_pos),
-                    //"opencl"};
-                    isa_name.substr(os_environment_separator_pos + 1, environment_target_separator_pos - os_environment_separator_pos)
+                    isa_substr(0, arch_vendor_separator_pos),
+                    isa_substr(arch_vendor_separator_pos + 1, vendor_os_separator_pos),
+                    isa_substr(vendor_os_separator_pos + 1, os_environment_separator_pos),
+                    isa_substr(os_environment_separator_pos + 1, environment_target_separator_pos)
                 },
-                isa_name.substr(environment_target_separator_pos + 1, isa_name.size() - environment_target_separator_pos)
+                std::string(isa_substr(environment_target_separator_pos + 1, target_feature_separator_pos)),
+                features.str()
             );
         };
-        auto [triple, gfx] = parse_triple_and_gfx(isa_name);
+        auto [triple, gfx, features] = parse_isa(isa_name);
         std::cout << "Triple as parsed from ISA name: " << triple.str() << std::endl;
         std::cout << "gfx as parsed from ISA name: " << gfx << std::endl;
+        std::cout << "LLVM CPU features: " << features << std::endl;
 
         // zig-based codegen
         llvm::InitializeAllTargets();
@@ -321,7 +355,7 @@ int main(int argc, char *argv[])
         //llvm::InitializeAllDisassemblers(); // not from zig
 
         auto CanonCPUName =
-        llvm::AMDGPU::getArchNameAMDGCN(llvm::AMDGPU::parseArchAMDGCN(gfx.c_str()));
+        llvm::AMDGPU::getArchNameAMDGCN(llvm::AMDGPU::parseArchAMDGCN(gfx));
 
         std::cout << "CanonCPUName: " << CanonCPUName.str() << std::endl;
 
@@ -333,15 +367,15 @@ int main(int argc, char *argv[])
 
         std::string lookup_err;
         const llvm::Target* target = llvm::TargetRegistry::lookupTarget(
-            "amdgcn-amd-", // triple.getTriple()
+            triple.getTriple(),
             lookup_err);
         if (!target)
             throw std::runtime_error{std::string{"Failed to lookup target: \n"} + lookup_err};
 
         auto target_machine = std::unique_ptr<llvm::TargetMachine>(target->createTargetMachine(
-            "amdgcn-amd-", // triple.getTriple()
+            triple.getTriple(),
             gfx.c_str(),
-            "", // Features
+            features.c_str(),
             llvm::TargetOptions{}, // Options
             llvm::Reloc::Model::DynamicNoPIC
             //std::nullopt,
