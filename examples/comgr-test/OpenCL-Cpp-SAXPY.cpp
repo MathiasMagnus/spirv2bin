@@ -143,12 +143,12 @@ public:
         std::vector<cl::Platform> platforms;
         cl::Platform::get(&platforms);
 
-        for(auto& platform : platforms)
+        for (auto& platform : platforms)
         {
             std::vector<cl::Device> devices;
             platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
-            for(auto& device : devices)
+            for (auto& device : devices)
             {
                 device_ISA_names.insert({
                     device,
@@ -311,14 +311,14 @@ int main(int argc, char *argv[])
             }
         }
 
-        if(llvm_module->materializeAll())
+        if (llvm_module->materializeAll())
             throw std::runtime_error{"Failed to materialize SPIRV module"};
 
         auto parse_isa = [](const std::string_view isa_name)
         {
             auto isa_substr = [&](const size_t start, const size_t end)
             {
-               if(end == std::string::npos)
+               if (end == std::string::npos)
                    return isa_name.substr(start);
                else
                    return isa_name.substr(start, end - start);
@@ -339,13 +339,13 @@ int main(int argc, char *argv[])
                 const bool first = feature_start_pos != target_feature_separator_pos;
                 feature_start_pos = next_feature_separator_pos;
 
-                if(feature.size() == 0)
+                if (feature.size() == 0)
                     continue;
 
-                if(first)
+                if (first)
                     features << ',';
 
-                if(feature.back() == '+')
+                if (feature.back() == '+')
                     features << '+' << feature.substr(0, feature.size() - 1);
                 else if (feature.back() == '-')
                     features << '-' << feature.substr(0, feature.size() - 1);
