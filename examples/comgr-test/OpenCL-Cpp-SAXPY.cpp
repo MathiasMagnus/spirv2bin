@@ -17,6 +17,8 @@
 #include <CL/Utils/Context.hpp> // cl::util::get_context
 #include <CL/Utils/Event.hpp>   // cl::util::get_duration
 
+#include <llvm/IR/InstIterator.h>
+
 #ifdef _MSC_VER
 #pragma warning( push, 0 )
 #endif
@@ -292,6 +294,23 @@ int main(int argc, char *argv[])
         llvm::Module* llvm_module;
         if (!readSpirv(llvm_context, binary_file, llvm_module, conversion_err))
             throw std::runtime_error{std::string{"Failed to convert SPIRV module: \n"} + conversion_err};
+
+        // TODO: Make this a proper pass?
+        for (llvm::Function& F : llvm_module->functions()) {
+            if (F.getCallingConv() == llvm::CallingConv::SPIR_FUNC) {
+                F.setCallingConv(llvm::CallingConv::Fast);
+            }
+
+            for (auto I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+                llvm::Instruction* inst = &*I;
+                if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
+                    if (call->getCallingConv() == llvm::CallingConv::SPIR_FUNC) {
+                        call->setCallingConv(llvm::CallingConv::Fast);
+                    }
+                }
+            }
+        }
+
         if(llvm_module->materializeAll())
             throw std::runtime_error{"Failed to materialize SPIRV module"};
 

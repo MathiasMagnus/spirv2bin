@@ -124,11 +124,6 @@
       }) {};
       spirv-llvm-translator = (pkgs.spirv-llvm-translator.override {
         inherit (pkgs.llvmPackages_16) llvm;
-      }).overrideAttrs (old: {
-        postPatch = ''
-          substituteInPlace lib/SPIRV/*.cpp \
-            --replace SPIR_FUNC Fast
-        '';
       });
     };
 
