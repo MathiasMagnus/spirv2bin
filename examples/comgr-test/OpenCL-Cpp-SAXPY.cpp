@@ -8,7 +8,9 @@
 #include <algorithm>  // std::transform
 #include <cstdlib>    // EXIT_FAILURE
 #include <execution>  // std::execution::par_unseq, std::execution::seq
+#include <stdexcept>
 #include <filesystem> // std::filesystem::canonical
+#include <optional>
 
 #include <CL/Utils/Context.hpp> // cl::util::get_context
 #include <CL/Utils/Event.hpp>   // cl::util::get_duration
@@ -27,27 +29,27 @@ void checkLogs(const char *id, amd_comgr_data_set_t dataSet)
 
   size_t count;
   status = amd_comgr_action_data_count(dataSet, AMD_COMGR_DATA_KIND_LOG, &count);
-  if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_data_count(AMD_COMGR_DATA_KIND_LOG)"};
+  if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_data_count(AMD_COMGR_DATA_KIND_LOG)"};
 
   for (size_t i = 0; i < count; i++) {
     amd_comgr_data_t data;
     status = amd_comgr_action_data_get_data(dataSet, AMD_COMGR_DATA_KIND_LOG, i,
                                             &data);
-    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_data_get_data(AMD_COMGR_DATA_KIND_LOG)"};
+    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_data_get_data(AMD_COMGR_DATA_KIND_LOG)"};
 
     size_t size;
     status = amd_comgr_get_data(data, &size, NULL);
-    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data"};
+    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data"};
 
     std::string data_log(size, '\0');
     status = amd_comgr_get_data(data, &size, data_log.data());
-    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data"};
+    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data"};
 
     std::cerr << "id: " << id << " has log " << i << std::endl;
     std::cerr << data_log << std::endl;
 
     status = amd_comgr_release_data(data);
-    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_release_data"};
+    if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_release_data"};
   }
 }
 
@@ -162,18 +164,18 @@ private:
 
             amd_comgr_data_t exec_data;
             status = amd_comgr_create_data(AMD_COMGR_DATA_KIND_EXECUTABLE, &exec_data);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data"};
 
             status = amd_comgr_set_data(exec_data, binary.size(), reinterpret_cast<const char*>(binary.data()));
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_set_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_set_data"};
 
             size_t isa_name_size;
             status = amd_comgr_get_data_isa_name(exec_data, &isa_name_size, nullptr);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data_isa_name"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data_isa_name"};
 
             std::string isa_name(isa_name_size + 1, '\0');
             status = amd_comgr_get_data_isa_name(exec_data, &isa_name_size, isa_name.data());
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data_isa_name"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data_isa_name"};
 
             isa_name.pop_back(); // pop null-terminator
             return isa_name;
@@ -236,18 +238,18 @@ int main(int argc, char *argv[])
 
             amd_comgr_data_t exec_data;
             status = amd_comgr_create_data(AMD_COMGR_DATA_KIND_EXECUTABLE, &exec_data);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data"};
 
             status = amd_comgr_set_data(exec_data, binary.size(), reinterpret_cast<const char*>(binary.data()));
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_set_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_set_data"};
 
             size_t isa_name_size;
             status = amd_comgr_get_data_isa_name(exec_data, &isa_name_size, nullptr);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data_isa_name"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data_isa_name"};
 
             std::string isa_name(isa_name_size, 'X');
             status = amd_comgr_get_data_isa_name(exec_data, &isa_name_size, isa_name.data());
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data_isa_name"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data_isa_name"};
 
             return isa_name;
         };
@@ -283,7 +285,7 @@ int main(int argc, char *argv[])
         llvm::LLVMContext llvm_context;
         llvm_context.setOpaquePointers(true); // EmitOpaquePointers
         std::string conversion_err;
-        
+
         llvm::Module* llvm_module;
         if (!readSpirv(llvm_context, binary_file, llvm_module, conversion_err))
             throw std::runtime_error{std::string{"Failed to convert SPIRV module: \n"} + conversion_err};
@@ -432,113 +434,113 @@ int main(int argc, char *argv[])
 
             amd_comgr_data_t bc_data;
             status = amd_comgr_create_data(AMD_COMGR_DATA_KIND_BC, &bc_data);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data"};
 
             status = amd_comgr_set_data(bc_data, llvm_bitcode.size(), reinterpret_cast<const char*>(llvm_bitcode.data()));
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_set_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_set_data"};
 
             status = amd_comgr_set_data_name(bc_data, "SAXPY_BC");
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_set_data_name"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_set_data_name"};
 
             amd_comgr_data_set_t bc_dataset;
             status = amd_comgr_create_data_set(&bc_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data_set"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data_set"};
 
             status = amd_comgr_data_set_add(bc_dataset, bc_data);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_data_set_add"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_data_set_add"};
 
             amd_comgr_action_info_t action_info;
             status = amd_comgr_create_action_info(&action_info);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_action_info"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_action_info"};
 
             status = amd_comgr_action_info_set_language(action_info, AMD_COMGR_LANGUAGE_OPENCL_1_2); // AMD_COMGR_LANGUAGE_NONE
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_info_set_language"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_info_set_language"};
 
             status = amd_comgr_action_info_set_isa_name(action_info, comgr_isa_name.str().c_str());
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_info_set_isa_name"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_info_set_isa_name"};
 
             amd_comgr_data_set_t device_libs_dataset;
             status = amd_comgr_create_data_set(&device_libs_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data_set"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data_set"};
 
             std::vector<const char*> device_lib_options = {"finite_only", "unsafe_math", "code_object_v5"};
             status = amd_comgr_action_info_set_option_list(action_info, device_lib_options.data(), device_lib_options.size());
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_info_set_option_list(device_lib_options)"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_info_set_option_list(device_lib_options)"};
 
             status = amd_comgr_do_action(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, action_info, bc_dataset, device_libs_dataset);
             checkLogs("bc_dataset AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES", bc_dataset);
             checkLogs("device_libs_dataset AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES", device_libs_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_do_action(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES)"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_do_action(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES)"};
 
             size_t count;
             status = amd_comgr_action_data_count(device_libs_dataset, AMD_COMGR_DATA_KIND_BC, &count);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_data_count(device_libs_dataset, AMD_COMGR_DATA_KIND_BC)"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_data_count(device_libs_dataset, AMD_COMGR_DATA_KIND_BC)"};
 
             std::cout << "device_libs_dataset has " << count << " AMD_COMGR_DATA_KIND_BC elements." << std::endl;
 
             amd_comgr_data_set_t linked_dataset;
             status = amd_comgr_create_data_set(&linked_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data_set"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data_set"};
 
             std::vector<const char*> codegen_options = {"-mllvm", "-amdgpu-early-inline-all", "-mcode-object-version=5"};
             status = amd_comgr_action_info_set_option_list(action_info, codegen_options.data(), codegen_options.size());
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_info_set_option_list(linked_dataset)"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_info_set_option_list(linked_dataset)"};
 
             status = amd_comgr_do_action(AMD_COMGR_ACTION_LINK_BC_TO_BC, action_info, device_libs_dataset, linked_dataset);
             checkLogs("device_libs_dataset AMD_COMGR_ACTION_LINK_BC_TO_BC", device_libs_dataset);
             checkLogs("AMD_COMGR_ACTION_LINK_BC_TO_BC", linked_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_do_action(AMD_COMGR_ACTION_LINK_BC_TO_BC)"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_do_action(AMD_COMGR_ACTION_LINK_BC_TO_BC)"};
 
             amd_comgr_data_set_t asm_dataset;
             status = amd_comgr_create_data_set(&asm_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data_set"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data_set"};
 
             status = amd_comgr_do_action(AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
                                action_info, linked_dataset, asm_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_do_action(AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY)"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_do_action(AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY)"};
 
             status = amd_comgr_action_data_count(asm_dataset, AMD_COMGR_DATA_KIND_SOURCE, &count);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_data_count"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_data_count"};
 
-            if (count != 1) throw std::exception{"AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY failed."};
+            if (count != 1) throw std::runtime_error{"AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY failed."};
 
             amd_comgr_data_set_t reloc_dataset;
             status = amd_comgr_create_data_set(&reloc_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data_set"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data_set"};
 
             status = amd_comgr_do_action(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE, action_info, asm_dataset, reloc_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_do_action(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE)"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_do_action(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE)"};
 
             status = amd_comgr_action_data_count(reloc_dataset, AMD_COMGR_DATA_KIND_RELOCATABLE, &count);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_data_count"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_data_count"};
 
-            if (count != 1) throw std::exception{"AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE failed."};
+            if (count != 1) throw std::runtime_error{"AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE failed."};
 
             amd_comgr_data_set_t exec_dataset;
             status = amd_comgr_create_data_set(&exec_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_create_data_set"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_create_data_set"};
 
             status = amd_comgr_action_info_set_option_list(action_info, NULL, 0);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_info_set_option_list"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_info_set_option_list"};
 
             status = amd_comgr_do_action(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, action_info, reloc_dataset, exec_dataset);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_do_action"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_do_action"};
 
             status = amd_comgr_action_data_count(exec_dataset, AMD_COMGR_DATA_KIND_EXECUTABLE, &count);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_data_count"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_data_count"};
 
-            if (count != 1) throw std::exception{"AMD_COMGR_DATA_KIND_EXECUTABLE failed."};
+            if (count != 1) throw std::runtime_error{"AMD_COMGR_DATA_KIND_EXECUTABLE failed."};
 
             amd_comgr_data_t exec_data;
             status = amd_comgr_action_data_get_data(exec_dataset, AMD_COMGR_DATA_KIND_EXECUTABLE, 0, &exec_data);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_action_data_get_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_action_data_get_data"};
 
             status = amd_comgr_get_data(exec_data, &count, nullptr);
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data"};
 
             Binary binary(count);
             status = amd_comgr_get_data(exec_data, &count, reinterpret_cast<char*>(binary.data()));
-            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::exception{"amd_comgr_get_data"};
+            if (status != AMD_COMGR_STATUS_SUCCESS) throw std::runtime_error{"amd_comgr_get_data"};
 
             return binary;
         };
@@ -623,6 +625,8 @@ int main(int argc, char *argv[])
         auto host_saxpy = [a = static_cast<float>(argc)](const float &x, const float &y)
         { return a * x + y; };
 
+        const size_t length = 1024;
+
         // Init computation
         std::cout << "Generating input for vector op... ";
         std::cout.flush();
@@ -665,7 +669,9 @@ int main(int argc, char *argv[])
         cl::Event event = device_saxpy(
             cl::EnqueueArgs{
                 queue,
-                length},
+                cl::NDRange(length),
+                cl::NDRange(32)
+            },
             a, buf_x, buf_y);
         event.wait();
         auto dev_end = std::chrono::high_resolution_clock::now();
