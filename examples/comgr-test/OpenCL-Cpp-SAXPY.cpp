@@ -654,7 +654,7 @@ int main(int argc, char *argv[])
             "",
             *llvm_module);
 */
-/*
+
         auto device_saxpy = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "saxpy");
         auto host_saxpy = [a = static_cast<float>(argc)](const float &x, const float &y)
         { return a * x + y; };
@@ -725,7 +725,7 @@ int main(int argc, char *argv[])
                       << "Device execution seen by host: " << std::chrono::duration_cast<std::chrono::milliseconds>(dev_end - dev_start).count() << "ms.\n"
                       << "Device execution seen by device: " << cl::util::get_duration<CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, std::chrono::milliseconds>(event).count() << "ms." << std::endl;
         }
-*/
+
     }
     catch (cl::BuildError &error) // If kernel failed to build
     {
