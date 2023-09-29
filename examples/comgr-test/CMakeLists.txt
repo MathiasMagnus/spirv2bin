@@ -8,7 +8,7 @@ project(OpenCL-Cpp-SAXPY
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin" CACHE PATH "asdf")
 
 if(NOT TARGET OpenCL::OpenCL)
-  find_package(OpenCL REQUIRED
+  find_package(OpenCL REQUIRED CONFIG
     COMPONENTS
       OpenCL
       HeadersCpp
@@ -21,7 +21,7 @@ find_package(amd_comgr REQUIRED)
 find_package(LLVM 16.0.0 REQUIRED)
 find_package(SPIRV-Headers REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(LLVM_SPIRV REQUIRED LLVMSPIRVLIB)
+pkg_check_modules(LLVM_SPIRV REQUIRED LLVMSPIRVLib)
 
 set(Sources ${PROJECT_NAME}.cpp)
 set(Kernels
@@ -164,7 +164,7 @@ target_compile_definitions(${PROJECT_NAME}
     CL_HPP_MINIMUM_OPENCL_VERSION=120
     CL_HPP_TARGET_OPENCL_VERSION=120
     CL_HPP_ENABLE_EXCEPTIONS
-    AMD_COMGR_IMPORT_DECORATOR
+    AMD_COMGR_IMPORT_DECORATOR=
 )
 
 source_group("Sources" FILES ${Sources})
