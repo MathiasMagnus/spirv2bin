@@ -8,7 +8,7 @@ project(OpenCL-Cpp-SAXPY
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin" CACHE PATH "asdf")
 
 if(NOT TARGET OpenCL::OpenCL)
-  find_package(OpenCL REQUIRED
+  find_package(OpenCL REQUIRED CONFIG
     COMPONENTS
       OpenCL
       HeadersCpp
@@ -21,7 +21,7 @@ find_package(amd_comgr REQUIRED)
 find_package(LLVM 16.0.0 REQUIRED)
 find_package(SPIRV-Headers REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(LLVM_SPIRV REQUIRED LLVMSPIRVLIB)
+pkg_check_modules(LLVM_SPIRV REQUIRED LLVMSPIRVLib)
 
 set(Sources ${PROJECT_NAME}.cpp)
 set(Kernels
@@ -92,66 +92,183 @@ target_link_libraries(${PROJECT_NAME}
     clangToolingInclusions
     lldCommon
     lldELF
-    LLVMAggressiveInstCombine
-    LLVMAMDGPUAsmParser
-    LLVMAMDGPUCodeGen
-    LLVMAMDGPUDesc
-    LLVMAMDGPUDisassembler
-    LLVMAMDGPUInfo
-    LLVMAMDGPUUtils
-    LLVMAnalysis
-    LLVMAsmParser
-    LLVMAsmPrinter
-    LLVMBinaryFormat
-    LLVMBitReader
-    LLVMBitstreamReader
-    LLVMBitWriter
-    LLVMCFGuard
-    LLVMCodeGen
-    LLVMCore
-    LLVMCoroutines
+    LLVMWindowsManifest
+    LLVMXRay
+    LLVMLibDriver
+    LLVMDlltoolDriver
     LLVMCoverage
-    LLVMDebugInfoCodeView
-    LLVMDebugInfoDWARF
-    LLVMDebugInfoMSF
-    LLVMDebugInfoPDB
-    LLVMDemangle
-    LLVMExtensions
-    LLVMFrontendOpenMP
-    LLVMGlobalISel
-    LLVMInstCombine
-    LLVMInstrumentation
-    LLVMipo
-    LLVMIRReader
-    LLVMLinker
-    LLVMLTO
-    LLVMMC
-    LLVMMCDisassembler
-    LLVMMCParser
-    LLVMMIRParser
-    LLVMObjCARCOpts
-    LLVMObject
-    LLVMOption
-    LLVMPasses
-    LLVMProfileData
-    LLVMRemarks
-    LLVMScalarOpts
-    LLVMSelectionDAG
-    LLVMSPIRVLib
-    LLVMSupport
-    LLVMSymbolize
-    LLVMTableGen
-    LLVMTableGenGlobalISel
-    LLVMTarget
-    LLVMTextAPI
-    LLVMTransformUtils
-    LLVMVectorize
-    LLVMWindowsDriver
+    LLVMLineEditor
+    LLVMXCoreDisassembler
+    LLVMXCoreCodeGen
+    LLVMXCoreDesc
+    LLVMXCoreInfo
+    LLVMX86TargetMCA
+    LLVMX86Disassembler
     LLVMX86AsmParser
     LLVMX86CodeGen
     LLVMX86Desc
-    LLVMX86Disassembler
     LLVMX86Info
+    LLVMWebAssemblyDisassembler
+    LLVMWebAssemblyAsmParser
+    LLVMWebAssemblyCodeGen
+    LLVMWebAssemblyDesc
+    LLVMWebAssemblyUtils
+    LLVMWebAssemblyInfo
+    LLVMVEDisassembler
+    LLVMVEAsmParser
+    LLVMVECodeGen
+    LLVMVEDesc
+    LLVMVEInfo
+    LLVMSystemZDisassembler
+    LLVMSystemZAsmParser
+    LLVMSystemZCodeGen
+    LLVMSystemZDesc
+    LLVMSystemZInfo
+    LLVMSparcDisassembler
+    LLVMSparcAsmParser
+    LLVMSparcCodeGen
+    LLVMSparcDesc
+    LLVMSparcInfo
+    LLVMRISCVTargetMCA
+    LLVMRISCVDisassembler
+    LLVMRISCVAsmParser
+    LLVMRISCVCodeGen
+    LLVMRISCVDesc
+    LLVMRISCVInfo
+    LLVMPowerPCDisassembler
+    LLVMPowerPCAsmParser
+    LLVMPowerPCCodeGen
+    LLVMPowerPCDesc
+    LLVMPowerPCInfo
+    LLVMNVPTXCodeGen
+    LLVMNVPTXDesc
+    LLVMNVPTXInfo
+    LLVMMSP430Disassembler
+    LLVMMSP430AsmParser
+    LLVMMSP430CodeGen
+    LLVMMSP430Desc
+    LLVMMSP430Info
+    LLVMMipsDisassembler
+    LLVMMipsAsmParser
+    LLVMMipsCodeGen
+    LLVMMipsDesc
+    LLVMMipsInfo
+    LLVMLoongArchDisassembler
+    LLVMLoongArchAsmParser
+    LLVMLoongArchCodeGen
+    LLVMLoongArchDesc
+    LLVMLoongArchInfo
+    LLVMLanaiDisassembler
+    LLVMLanaiCodeGen
+    LLVMLanaiAsmParser
+    LLVMLanaiDesc
+    LLVMLanaiInfo
+    LLVMHexagonDisassembler
+    LLVMHexagonCodeGen
+    LLVMHexagonAsmParser
+    LLVMHexagonDesc
+    LLVMHexagonInfo
+    LLVMBPFDisassembler
+    LLVMBPFAsmParser
+    LLVMBPFCodeGen
+    LLVMBPFDesc
+    LLVMBPFInfo
+    LLVMAVRDisassembler
+    LLVMAVRAsmParser
+    LLVMAVRCodeGen
+    LLVMAVRDesc
+    LLVMAVRInfo
+    LLVMARMDisassembler
+    LLVMARMAsmParser
+    LLVMARMCodeGen
+    LLVMARMDesc
+    LLVMARMUtils
+    LLVMARMInfo
+    LLVMAMDGPUTargetMCA
+    LLVMAMDGPUDisassembler
+    LLVMAMDGPUAsmParser
+    LLVMAMDGPUCodeGen
+    LLVMAMDGPUDesc
+    LLVMAMDGPUUtils
+    LLVMAMDGPUInfo
+    LLVMAArch64Disassembler
+    LLVMAArch64AsmParser
+    LLVMAArch64CodeGen
+    LLVMAArch64Desc
+    LLVMAArch64Utils
+    LLVMAArch64Info
+    LLVMOrcJIT
+    LLVMWindowsDriver
+    LLVMMCJIT
+    LLVMJITLink
+    LLVMInterpreter
+    LLVMExecutionEngine
+    LLVMRuntimeDyld
+    LLVMOrcTargetProcess
+    LLVMOrcShared
+    LLVMDWP
+    LLVMDebugInfoLogicalView
+    LLVMDebugInfoGSYM
+    LLVMOption
+    LLVMObjectYAML
+    LLVMObjCopy
+    LLVMMCA
+    LLVMMCDisassembler
+    LLVMLTO
+    LLVMCFGuard
+    LLVMFrontendOpenACC
+    LLVMFrontendHLSL
+    LLVMExtensions
+    Polly
+    PollyISL
+    LLVMPasses
+    LLVMCoroutines
+    LLVMipo
+    LLVMInstrumentation
+    LLVMVectorize
+    LLVMLinker
+    LLVMFrontendOpenMP
+    LLVMDWARFLinkerParallel
+    LLVMDWARFLinker
+    LLVMGlobalISel
+    LLVMMIRParser
+    LLVMAsmPrinter
+    LLVMSelectionDAG
+    LLVMCodeGen
+    LLVMObjCARCOpts
+    LLVMIRPrinter
+    LLVMInterfaceStub
+    LLVMFileCheck
+    LLVMFuzzMutate
+    LLVMTarget
+    LLVMScalarOpts
+    LLVMInstCombine
+    LLVMAggressiveInstCombine
+    LLVMTransformUtils
+    LLVMBitWriter
+    LLVMAnalysis
+    LLVMProfileData
+    LLVMSymbolize
+    LLVMDebugInfoPDB
+    LLVMDebugInfoMSF
+    LLVMDebugInfoDWARF
+    LLVMObject
+    LLVMTextAPI
+    LLVMMCParser
+    LLVMIRReader
+    LLVMAsmParser
+    LLVMMC
+    LLVMDebugInfoCodeView
+    LLVMBitReader
+    LLVMFuzzerCLI
+    LLVMCore
+    LLVMRemarks
+    LLVMBitstreamReader
+    LLVMBinaryFormat
+    LLVMTargetParser
+    LLVMTableGen
+    LLVMSupport
+    LLVMDemangle
 )
 
 target_link_directories(${PROJECT_NAME}
@@ -164,7 +281,7 @@ target_compile_definitions(${PROJECT_NAME}
     CL_HPP_MINIMUM_OPENCL_VERSION=120
     CL_HPP_TARGET_OPENCL_VERSION=120
     CL_HPP_ENABLE_EXCEPTIONS
-    AMD_COMGR_IMPORT_DECORATOR
+    AMD_COMGR_IMPORT_DECORATOR=
 )
 
 source_group("Sources" FILES ${Sources})

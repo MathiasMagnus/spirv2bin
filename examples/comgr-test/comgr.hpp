@@ -115,22 +115,22 @@ namespace amd::comgr
         ~data()
         {
             auto s = amd_comgr_release_data(data_);
-            err_handler(status{s}, "amd_comgr_release_data");
+            err_handler(static_cast<status>(s), "amd_comgr_release_data");
         }
 
         data(kind k)
         {
             auto s = amd_comgr_create_data(static_cast<amd_comgr_data_kind_t>(k), &data_);
-            err_handler(status{s}, "amd_comgr_create_data");
+            err_handler(static_cast<status>(s), "amd_comgr_create_data");
         }
 
-        data(kind k, std::string_view name, std::span<std::byte> data) : data(k)
+        data(kind k, std::string_view name, std::span<std::byte> data__) : data(k)
         {
             auto s = amd_comgr_set_data_name(data_, name.data());
-            err_handler(status{s}, "amd_comgr_set_data_name");
+            err_handler(static_cast<status>(s), "amd_comgr_set_data_name");
 
-            s = amd_comgr_set_data(data_, data.size_bytes(), reinterpret_cast<const char*>(data.data()));
-            err_handler(status{s}, "amd_comgr_create_data");
+            s = amd_comgr_set_data(data_, data__.size_bytes(), reinterpret_cast<const char*>(data__.data()));
+            err_handler(static_cast<status>(s), "amd_comgr_create_data");
         }
 
         amd_comgr_data_t get() const { return data_; }
@@ -153,7 +153,7 @@ namespace amd::comgr
         ~dataset()
         {
             auto s = amd_comgr_destroy_data_set(dataset_);
-            err_handler(status{s}, "amd_comgr_release_data_set");
+            err_handler(static_cast<status>(s), "amd_comgr_release_data_set");
         }
 
         dataset(std::initializer_list<data> in)
@@ -161,7 +161,7 @@ namespace amd::comgr
             for (const data& dat : in)
             {
                 auto s = amd_comgr_data_set_add(dataset_, dat.get());
-                err_handler(status{s}, "amd_comgr_data_set_add");
+                err_handler(static_cast<status>(s), "amd_comgr_data_set_add");
             }
         }
     private:
